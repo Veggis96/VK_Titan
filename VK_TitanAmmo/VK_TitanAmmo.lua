@@ -17,6 +17,7 @@ end
 frame:SetScript("OnEvent", function(self, event, unit)
     if event == "UNIT_INVENTORY_CHANGED" and unit ~= "player" then return end
     plugin:Update()
+    VK_Titan:RefreshBar()
 end)
 
 local function GetContainerSlotCount(bagSlot)

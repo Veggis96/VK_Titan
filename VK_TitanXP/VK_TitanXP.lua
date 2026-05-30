@@ -19,6 +19,7 @@ end
 
 frame:SetScript("OnEvent", function(self, event)
     plugin:Update()
+    VK_Titan:RefreshBar()
 end)
 
 function plugin:Update()

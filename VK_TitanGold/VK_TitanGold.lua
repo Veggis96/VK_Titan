@@ -57,6 +57,7 @@ frame:SetScript("OnEvent", function(self, event)
         SaveGold()
     else
         plugin:Update()
+        VK_Titan:RefreshBar()
     end
 end)
 
