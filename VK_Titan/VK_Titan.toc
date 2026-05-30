@@ -1,0 +1,8 @@
+## Interface: 20504
+## Title: VK Titan Panel
+## Notes: Core framework for VK Titan Panel
+## Author: Vegard
+## Version: 1.1
+## SavedVariables: VK_TitanBarDB
+
+VK_Titan.xml

@@ -1,0 +1,11 @@
+# WoW SavedVariables (per-character data)
+**/SavedVariables/
+
+# WoW addon temp files
+*.toc.bak
+*.lua.bak
+
+# OS files
+Thumbs.db
+Desktop.ini
+.DS_Store

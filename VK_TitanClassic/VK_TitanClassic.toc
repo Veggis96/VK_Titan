@@ -1,0 +1,8 @@
+## Interface: 20504
+## Title: VK Titan Classic Engine
+## Notes: Core engine for VK Titan Panel plugins
+## Author: Vegard
+## Version: 1.1
+## Dependencies: VK_Titan
+
+VK_TitanClassic.xml

@@ -1,0 +1,9 @@
+## Interface: 20504
+## Title: VK Titan [Gold]
+## Notes: Shows your current gold on the Titan bar
+## Author: Vegard
+## Version: 1.1
+## Dependencies: VK_Titan, VK_TitanClassic
+## SavedVariables: VK_TitanGoldDB
+
+VK_TitanGold.xml

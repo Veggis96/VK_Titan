@@ -1,0 +1,8 @@
+## Interface: 20504
+## Title: VK Titan [Repair]
+## Notes: Shows durability and repair cost on the Titan bar
+## Author: Vegard
+## Version: 1.1
+## Dependencies: VK_Titan, VK_TitanClassic
+
+VK_TitanRepair.xml
