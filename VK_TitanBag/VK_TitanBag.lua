@@ -45,27 +45,29 @@ local function GetBagInfo()
     return totalSlots, freeSlots, bagData
 end
 
-local function Colorize(free, total)
+local function Colorize(used, total)
     if total == 0 then return "|cffffffff0|r" end
-    local pct = (free / total) * 100
+    local pct = (used / total) * 100
 
-    if pct >= 50 then
-        return "|cff00ff00" .. free .. "|r"
-    elseif pct >= 25 then
-        return "|cffffff00" .. free .. "|r"
+    if pct < 50 then
+        return "|cff00ff00" .. used .. "|r"
+    elseif pct < 75 then
+        return "|cffffff00" .. used .. "|r"
     else
-        return "|cffff0000" .. free .. "|r"
+        return "|cffff0000" .. used .. "|r"
     end
 end
 
 function plugin:Update()
     local totalSlots, freeSlots, bagData = GetBagInfo()
-    local colored = Colorize(freeSlots, totalSlots)
+    local used = totalSlots - freeSlots
+    local colored = Colorize(used, totalSlots)
     self.text = "Bags: " .. colored .. "/" .. totalSlots
 end
 
 function plugin:OnTooltipShow()
     local totalSlots, freeSlots, bagData = GetBagInfo()
+    local used = totalSlots - freeSlots
 
     GameTooltip:AddLine("Bag Usage", 1, 1, 1)
     GameTooltip:AddLine(" ")
@@ -76,7 +78,7 @@ function plugin:OnTooltipShow()
     end
 
     GameTooltip:AddLine(" ")
-    GameTooltip:AddDoubleLine("Total", freeSlots .. " free / " .. totalSlots .. " slots", 1, 1, 1, 1, 1, 0)
+    GameTooltip:AddDoubleLine("Total", used .. " used / " .. totalSlots .. " slots", 1, 1, 1, 1, 1, 0)
 end
 
 VK_TitanClassic:RegisterPlugin("VK_TitanBag", plugin)

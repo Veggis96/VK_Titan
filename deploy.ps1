@@ -15,14 +15,22 @@ $addons = @(
 )
 
 foreach ($addon in $addons) {
-    $sourcePath = Join-Path $src $addon
-    $destPath = Join-Path $dst $addon
-    if (Test-Path $sourcePath) {
-        Copy-Item -Recurse -Force $sourcePath $destPath
-        Write-Host "Deployed $addon" -ForegroundColor Green
-    } else {
+    $srcDir = Join-Path $src $addon
+    $dstDir = Join-Path $dst $addon
+    if (-not (Test-Path $srcDir)) {
         Write-Host "SKIPPED $addon (not found in source)" -ForegroundColor Yellow
+        continue
     }
+    Get-ChildItem -Path $srcDir -Recurse -File | ForEach-Object {
+        $relPath = $_.FullName.Substring($srcDir.Length)
+        $targetFile = Join-Path $dstDir $relPath
+        $targetDir = Split-Path $targetFile
+        if (-not (Test-Path $targetDir)) {
+            New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
+        }
+        [System.IO.File]::Copy($_.FullName, $targetFile, $true)
+    }
+    Write-Host "Deployed $addon" -ForegroundColor Green
 }
 
 Write-Host "`nDone. Reload in WoW (/reload) to apply." -ForegroundColor Cyan
