@@ -4,6 +4,8 @@
 
 local ADDON_NAME, ns = ...
 
+ns.ItemSockets = {}
+
 ns.GemData = {}
 
 ns.GemData["DruidBalance"] = {
