@@ -256,8 +256,6 @@ end
 local function BuildItemTooltip(tooltip, itemID, specKey)
     local sockets = ns.ItemSockets[itemID]
     local gemData = ns.GemData[specKey]
-    local enchantCategory = ns.SpecToEnchantCategory[specKey]
-    local enchantData = enchantCategory and ns.EnchantData[enchantCategory]
 
     -- Find item slot for enchant lookup
     local itemSlot = nil
@@ -272,11 +270,14 @@ local function BuildItemTooltip(tooltip, itemID, specKey)
         end
     end
 
-    if sockets and gemData then
+    if sockets and gemData and gemData.gems then
         tooltip:AddLine(" ")
         tooltip:AddLine("|cFF00CCFFSuggested Gems:|r")
         for _, color in ipairs(sockets) do
-            local gem = GetGemForSocket(color, specKey, showBudget)
+            local colorKey = color:lower()
+            -- Map socket color to gem data key
+            local gemKey = colorKey == "m" and "meta" or colorKey == "r" and "red" or colorKey == "y" and "yellow" or colorKey == "b" and "blue" or nil
+            local gem = gemData.gems[gemKey] or (gemKey == "meta" and gemData.meta)
             if gem then
                 local _, link = GetItemInfo(gem.id)
                 if link then
@@ -288,10 +289,10 @@ local function BuildItemTooltip(tooltip, itemID, specKey)
         end
     end
 
-    if enchantData and itemSlot and enchantData[itemSlot] and enchantData[itemSlot].name then
+    if gemData and gemData.enchants and itemSlot and gemData.enchants[itemSlot] then
         tooltip:AddLine(" ")
         tooltip:AddLine("|cFF00CCFFSuggested Enchant:|r")
-        tooltip:AddLine("  " .. enchantData[itemSlot].name)
+        tooltip:AddLine("  " .. gemData.enchants[itemSlot].name)
     end
 end
 
@@ -305,8 +306,8 @@ function ns:RefreshBiSList()
     -- Update meta gem info
     if gemData and gemData.meta then
         mainFrame.metaText:SetText(
-            string.format("|T%d:14:14:0:0|t Meta: %s  |  Req: %s",
-                gemData.meta.id, gemData.meta.name, gemData.meta.req)
+            string.format("|T%d:14:14:0:0|t Meta: %s",
+                gemData.meta.id, gemData.meta.name)
         )
     else
         mainFrame.metaText:SetText("No gem data for this spec")
@@ -511,6 +512,17 @@ frame:SetScript("OnEvent", function(self, event)
         end
         plugin:Update()
         VK_Titan:RefreshBar()
+
+        -- Pre-cache all item IDs so GetItemInfo returns instantly
+        C_Timer.After(1, function()
+            for _, specData in pairs(ns.BiSData) do
+                for _, phaseData in pairs(specData) do
+                    for _, item in ipairs(phaseData) do
+                        GetItemInfo(item.itemID)
+                    end
+                end
+            end
+        end)
     end
 end)
 

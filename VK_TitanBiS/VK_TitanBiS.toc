@@ -2,10 +2,9 @@
 ## Title: VK Titan [BiS]
 ## Notes: Best in Slot list with gem and enchant recommendations for TBC Classic
 ## Author: Vegard
-## Version: 1.0
+## Version: 1.1
 ## Dependencies: VK_Titan, VK_TitanClassic
 
 Data\GemData.lua
-Data\EnchantData.lua
 Data\BiSData.lua
 Core.lua
