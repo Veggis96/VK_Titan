@@ -55,6 +55,10 @@ end
 frame:SetScript("OnEvent", function(self, event)
     if event == "PLAYER_LOGOUT" then
         SaveGold()
+    elseif event == "PLAYER_MONEY" then
+        SaveGold()
+        plugin:Update()
+        VK_Titan:RefreshBar()
     else
         plugin:Update()
         VK_Titan:RefreshBar()
@@ -68,8 +72,6 @@ function plugin:Update()
         sessionStartTime = time()
         sessionStartGold = current
     end
-
-    SaveGold()
 
     local total = GetTotalGold()
 
