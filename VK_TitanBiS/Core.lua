@@ -238,6 +238,109 @@ end
 -- =====================
 -- Refresh BiS List
 -- =====================
+-- Refresh BiS List (AtlasLoot-style)
+-- =====================
+local MAX_PER_SLOT = 3
+
+local function CreateSlotHeader(parent, slotName, yOffset)
+    local header = CreateFrame("Frame", nil, parent, "BackdropTemplate")
+    header:SetSize(parent:GetWidth() - 10, 24)
+    header:SetPoint("TOPLEFT", parent, "TOPLEFT", 5, yOffset)
+    header:SetBackdrop({
+        bgFile = "Interface\\QuestFrame\\UI-QuestTitleHighlight",
+        tile = true, tileSize = 16,
+    })
+
+    local icon = header:CreateTexture(nil, "ARTWORK")
+    icon:SetSize(18, 18)
+    icon:SetPoint("LEFT", header, "LEFT", 5, 0)
+    icon:SetTexture(SLOT_ICONS[slotName] or "Interface\\Icons\\INV_Misc_QuestionMark")
+
+    local label = header:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    label:SetPoint("LEFT", icon, "RIGHT", 5, 0)
+    label:SetText(slotName)
+
+    return header, 28
+end
+
+local function CreateItemRow(parent, item, rank, gemData, enchantData, yOffset, isTop)
+    local row = CreateFrame("Frame", nil, parent)
+    row:SetSize(parent:GetWidth() - 10, isTop and 22 or 18)
+    row:SetPoint("TOPLEFT", parent, "TOPLEFT", 5, yOffset)
+
+    -- Rank number
+    local rankText = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    rankText:SetPoint("LEFT", row, "LEFT", 5, 0)
+    rankText:SetWidth(20)
+    local rankColor = rank == 1 and "|cff00ff00" or rank == 2 and "|cffffffcc" or "|cff999999"
+    rankText:SetText(rankColor .. "#" .. rank .. "|r")
+
+    -- Item name
+    local itemName = "Item " .. item.itemID
+    local itemQuality = nil
+    local info = { GetItemInfo(item.itemID) }
+    if info[1] then
+        itemName = info[1]
+        itemQuality = info[3]
+    end
+
+    local nameText = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    nameText:SetPoint("LEFT", rankText, "RIGHT", 5, 0)
+    nameText:SetWidth(350)
+    nameText:SetJustifyH("LEFT")
+
+    if itemQuality then
+        local r, g, b = GetItemQualityColor(itemQuality)
+        local qhex = string.format("%02x%02x%02x", r * 255, g * 255, b * 255)
+        nameText:SetText("|cff" .. qhex .. itemName .. "|r")
+    else
+        nameText:SetText(itemName)
+    end
+
+    local rowHeight = isTop and 22 or 18
+
+    -- Show gems + enchant only for #1 item
+    if isTop and gemData then
+        local sockets = ns.ItemSockets[item.itemID]
+        if sockets then
+            local gemStr = ""
+            for _, color in ipairs(sockets) do
+                local gem = GetGemForSocket(color, GetSpecKey(), showBudget)
+                local colorName = GetSocketColorName(color)
+                if gem then
+                    gemStr = gemStr .. string.format("|T%d:11:11:0:0|t|cff%s%s|r ",
+                        gem.id, GetSocketColorHex(color), colorName)
+                else
+                    gemStr = gemStr .. string.format("|cff%s%s|r ",
+                        GetSocketColorHex(color), colorName)
+                end
+            end
+
+            if gemStr ~= "" then
+                local gemLine = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+                gemLine:SetPoint("TOPLEFT", nameText, "BOTTOMLEFT", 25, -1)
+                gemLine:SetWidth(400)
+                gemLine:SetJustifyH("LEFT")
+                gemLine:SetText("Gems: " .. gemStr)
+                rowHeight = rowHeight + 14
+            end
+        end
+
+        if enchantData and enchantData[item.slot] and enchantData[item.slot].name then
+            local enchantLine = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+            local eY = -1
+            if ns.ItemSockets[item.itemID] then eY = -15 end
+            enchantLine:SetPoint("TOPLEFT", nameText, "BOTTOMLEFT", 25, eY)
+            enchantLine:SetTextColor(0.5, 1, 0.5)
+            enchantLine:SetText("Enchant: " .. enchantData[item.slot].name)
+            rowHeight = rowHeight + 14
+        end
+    end
+
+    row:SetHeight(rowHeight)
+    return row, rowHeight
+end
+
 function ns:RefreshBiSList()
     if not mainFrame then return end
 
@@ -267,109 +370,45 @@ function ns:RefreshBiSList()
     if not phaseData then
         local noData = scrollChild:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
         noData:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", 10, -10)
-        noData:SetText("No BiS data for this spec/phase yet.\nUse the Python scraper to generate data.")
+        noData:SetText("No BiS data for this spec/phase yet.")
         return
     end
 
-    local yOffset = -5
-    local seenSlots = {}
-
+    -- Group items by slot
+    local grouped = {}
     for _, item in ipairs(phaseData) do
         if tContains(SLOT_ORDER, item.slot) then
-            seenSlots[item.slot] = (seenSlots[item.slot] or 0) + 1
-            if seenSlots[item.slot] > 2 then
-                -- skip items ranked below #2
-            else
-            local row = CreateFrame("Frame", nil, scrollChild, "BackdropTemplate")
-            row:SetSize(scrollChild:GetWidth() - 20, 65)
-            row:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", 5, yOffset)
-            row:SetBackdrop({
-                bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-                edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-                edgeSize = 4,
-                insets = { left = 2, right = 2, top = 2, bottom = 2 },
-            })
-
-            -- Slot icon
-            local slotIcon = row:CreateTexture(nil, "ARTWORK")
-            slotIcon:SetSize(32, 32)
-            slotIcon:SetPoint("TOPLEFT", row, "TOPLEFT", 5, -5)
-            slotIcon:SetTexture(SLOT_ICONS[item.slot] or "Interface\\Icons\\INV_Misc_QuestionMark")
-
-            -- Item name
-            local itemName, itemLink, itemQuality, _, _, _, _, _, itemEquipLoc, itemTexture = GetItemInfo(item.itemID)
-            if not itemName then
-                itemName = "Item " .. item.itemID
+            if not grouped[item.slot] then
+                grouped[item.slot] = {}
             end
-
-            local nameText = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-            nameText:SetPoint("TOPLEFT", slotIcon, "TOPRIGHT", 5, -2)
-            nameText:SetWidth(300)
-            nameText:SetJustifyH("LEFT")
-
-            local rankColor = item.rank == 1 and "00ff00" or item.rank == 2 and "ffffffcc" or "999999"
-            if itemQuality then
-                local r, g, b = GetItemQualityColor(itemQuality)
-                local qualityHex = string.format("%02x%02x%02x", r * 255, g * 255, b * 255)
-                nameText:SetText(string.format("|cff%s#%d|r  |cff%s%s|r",
-                    rankColor, item.rank, qualityHex, itemName))
-            else
-                nameText:SetText(string.format("|cff%s#%d|r  %s",
-                    rankColor, item.rank, itemName))
-            end
-
-            -- Slot label
-            local slotText = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-            slotText:SetPoint("TOPRIGHT", row, "TOPRIGHT", -5, -2)
-            slotText:SetTextColor(0.7, 0.7, 0.7)
-            slotText:SetText(item.slot)
-
-            -- Socket info + Gems
-            local sockets = ns.ItemSockets[item.itemID]
-            if sockets and gemData then
-                local gemLine = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-                gemLine:SetPoint("TOPLEFT", nameText, "BOTTOMLEFT", 0, -3)
-                gemLine:SetWidth(500)
-                gemLine:SetJustifyH("LEFT")
-
-                local gemStr = "Sockets: "
-                for i, color in ipairs(sockets) do
-                    local gem = GetGemForSocket(color, specKey, showBudget)
-                    local colorName = GetSocketColorName(color)
-                    if gem then
-                        gemStr = gemStr .. string.format("|T%d:12:12:0:0|t|cff%s%s|r ",
-                            gem.id, GetSocketColorHex(color), colorName)
-                    else
-                        gemStr = gemStr .. string.format("|cff%s%s|r ",
-                            GetSocketColorHex(color), colorName)
-                    end
-                end
-                gemLine:SetText(gemStr)
-
-                -- Enchant
-                if enchantData and item.slot and enchantData[item.slot] and enchantData[item.slot].name then
-                    local enchantLine = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-                    enchantLine:SetPoint("TOPLEFT", gemLine, "BOTTOMLEFT", 0, -1)
-                    enchantLine:SetTextColor(0.5, 1, 0.5)
-                    enchantLine:SetText("Enchant: " .. enchantData[item.slot].name)
-                    row:SetHeight(80)
-                else
-                    row:SetHeight(65)
-                end
-            elseif enchantData and item.slot and enchantData[item.slot] and enchantData[item.slot].name then
-                local enchantLine = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-                enchantLine:SetPoint("TOPLEFT", nameText, "BOTTOMLEFT", 0, -3)
-                enchantLine:SetTextColor(0.5, 1, 0.5)
-                enchantLine:SetText("Enchant: " .. enchantData[item.slot].name)
-                row:SetHeight(65)
-            end
-
-            yOffset = yOffset - row:GetHeight() - 5
-            end
+            table.insert(grouped[item.slot], item)
         end
     end
 
-    -- Resize scroll child
+    -- Render AtlasLoot-style: slot header + items under it
+    local yOffset = -5
+
+    for _, slotName in ipairs(SLOT_ORDER) do
+        local items = grouped[slotName]
+        if items and #items > 0 then
+            -- Slot header
+            local _, headerHeight = CreateSlotHeader(scrollChild, slotName, yOffset)
+            yOffset = yOffset - headerHeight
+
+            -- Top items for this slot
+            local shown = 0
+            for _, item in ipairs(items) do
+                if shown < MAX_PER_SLOT then
+                    shown = shown + 1
+                    local _, rowHeight = CreateItemRow(scrollChild, item, shown, gemData, enchantData, yOffset, shown == 1)
+                    yOffset = yOffset - rowHeight
+                end
+            end
+
+            yOffset = yOffset - 4
+        end
+    end
+
     scrollChild:SetHeight(math.abs(yOffset) + 20)
 end
 
