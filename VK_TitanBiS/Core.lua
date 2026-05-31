@@ -272,9 +272,14 @@ function ns:RefreshBiSList()
     end
 
     local yOffset = -5
+    local seenSlots = {}
 
     for _, item in ipairs(phaseData) do
         if tContains(SLOT_ORDER, item.slot) then
+            seenSlots[item.slot] = (seenSlots[item.slot] or 0) + 1
+            if seenSlots[item.slot] > 2 then
+                -- skip items ranked below #2
+            else
             local row = CreateFrame("Frame", nil, scrollChild, "BackdropTemplate")
             row:SetSize(scrollChild:GetWidth() - 20, 65)
             row:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", 5, yOffset)
@@ -360,6 +365,7 @@ function ns:RefreshBiSList()
             end
 
             yOffset = yOffset - row:GetHeight() - 5
+            end
         end
     end
 
@@ -387,14 +393,12 @@ local plugin = {}
 plugin.text = "BiS"
 
 local frame = CreateFrame("Frame")
-local itemRefreshPending = false
 
 function plugin:OnLoad()
     frame:RegisterEvent("PLAYER_ENTERING_WORLD")
-    frame:RegisterEvent("GET_ITEM_INFO_RECEIVED")
 end
 
-frame:SetScript("OnEvent", function(self, event, arg1)
+frame:SetScript("OnEvent", function(self, event)
     if event == "PLAYER_ENTERING_WORLD" then
         local _, classFile = UnitClass("player")
         if classFile then
@@ -408,14 +412,6 @@ frame:SetScript("OnEvent", function(self, event, arg1)
         end
         plugin:Update()
         VK_Titan:RefreshBar()
-    elseif event == "GET_ITEM_INFO_RECEIVED" and mainFrame and mainFrame:IsShown() then
-        if not itemRefreshPending then
-            itemRefreshPending = true
-            C_Timer.After(0.5, function()
-                itemRefreshPending = false
-                ns:RefreshBiSList()
-            end)
-        end
     end
 end)
 
