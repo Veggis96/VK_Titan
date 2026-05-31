@@ -312,7 +312,6 @@ function ns:RefreshBiSList()
 
     -- Update nav button highlights
     for slotName, btn in pairs(mainFrame.navButtons) do
-        btn:SetHighlightTexture(nil)
         if slotName == activeSlot then
             btn:GetFontString():SetTextColor(0, 1, 0)
         else
