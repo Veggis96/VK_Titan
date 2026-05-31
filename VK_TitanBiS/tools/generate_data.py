@@ -14,46 +14,44 @@ import sys
 import os
 
 # Map TBCA_BIS spec abbreviations to our spec keys
+# Single mappings (one CSV spec → one addon spec)
 SPEC_MAP = {
-    # Warrior
     "Arms": "WarriorArms",
     "Fury": "WarriorFury",
-    "Prot": "WarriorProt",
-    # Druid
-    "Balance": "DruidBalance",
     "Cat": "DruidCat",
     "Bear": "DruidBear",
     "Tree": "DruidResto",
-    "Resto": "DruidResto",
-    # Hunter
     "BM": "HunterBM",
-    "MM": "HunterMM",
     "SV": "HunterSV",
-    # Mage
     "Arc": "MageArcane",
     "Fire": "MageFire",
-    "Frost": "MageFrost",
-    # Paladin
-    "Holy": "PaladinHoly",
     "Ret": "PaladinRet",
-    # Priest
     "Shad": "PriestShadow",
-    "Disc": "PriestDisc",
-    # Rogue
     "Rog": "RogueAssassination",
-    # Shaman
     "Enh": "ShamanEnhancement",
     "Ele": "ShamanElemental",
-    # Warlock
     "Aff": "WarlockAffliction",
     "Dest": "WarlockDestruction",
+    "Owl": "DruidBalance",
 }
 
-# Handle ambiguous specs
-SPEC_MAP_HOLY_PALADIN = "PaladinHoly"
-SPEC_MAP_HOLY_PRIEST = "PriestHoly"
-SPEC_MAP_RESTO_SHAMAN = "ShamanResto"
-SPEC_MAP_DESTRO = "WarlockDestruction"
+# Multi-mappings (one CSV spec → multiple addon specs)
+SPEC_MAP_MULTI = {
+    "Heal":  ["PaladinHoly", "PriestHoly", "PriestDisc", "DruidResto", "ShamanResto"],
+    "Tank":  ["WarriorProt", "DruidBear", "PaladinProt"],
+    "Holy":  ["PaladinHoly", "PriestHoly"],
+    "Prot":  ["WarriorProt", "PaladinProt"],
+    "Resto": ["DruidResto", "ShamanResto"],
+}
+
+# Fallback: missing specs use the closest available spec
+SPEC_FALLBACK = {
+    "HunterMM": "HunterBM",
+    "MageFrost": "MageFire",
+    "WarlockDemonology": "WarlockAffliction",
+    "RogueCombat": "RogueAssassination",
+    "RogueSubtlety": "RogueAssassination",
+}
 
 # Equipment slot names
 SLOT_NAMES = {
@@ -92,24 +90,19 @@ CLASSES = [
 
 
 def parse_spec(spec_str, slot):
-    """Map TBCA_BIS spec abbreviation to our spec key."""
+    """Map TBCA_BIS spec abbreviation to our spec key(s). Returns a list."""
     spec_str = spec_str.strip()
 
-    # Handle "Holy" for both Paladin and Priest
-    if spec_str == "Holy":
-        if slot in ("Shield", "Relic") or True:  # Default to Paladin
-            return "PaladinHoly"
-        return "PriestHoly"
+    # Single mapping
+    if spec_str in SPEC_MAP:
+        return [SPEC_MAP[spec_str]]
 
-    # Handle "Resto" for Druid, Shaman
-    if spec_str == "Resto":
-        return "ShamanResto"
+    # Multi-mapping (generic specs)
+    if spec_str in SPEC_MAP_MULTI:
+        return SPEC_MAP_MULTI[spec_str]
 
-    # Handle "Dest" for Warlock
-    if spec_str == "Dest":
-        return "WarlockDestruction"
-
-    return SPEC_MAP.get(spec_str, spec_str)
+    # Unknown spec
+    return []
 
 
 def read_csv(filepath):
@@ -119,25 +112,38 @@ def read_csv(filepath):
     with open(filepath, "r") as f:
         reader = csv.DictReader(f)
         for row in reader:
-            item_id = int(row["ItemID"])
+            try:
+                item_id = int(row["ItemID"].strip())
+            except (ValueError, KeyError):
+                continue
             spec = row["Spec"].strip()
-            phase = int(row["GamePhase"])
+            try:
+                phase = int(row["GamePhase"].strip())
+            except (ValueError, KeyError):
+                continue
             slot = row["Slot"].strip()
-            rank = int(row["Rank"])
+            try:
+                rank = int(row["Rank"].strip())
+            except (ValueError, KeyError):
+                continue
 
-            spec_key = parse_spec(spec, slot)
+            if not spec or not slot:
+                continue
+
+            spec_keys = parse_spec(spec, slot)
             slot_name = SLOT_NAMES.get(slot, slot)
 
-            if spec_key not in data:
-                data[spec_key] = {}
-            if phase not in data[spec_key]:
-                data[spec_key][phase] = []
+            for spec_key in spec_keys:
+                if spec_key not in data:
+                    data[spec_key] = {}
+                if phase not in data[spec_key]:
+                    data[spec_key][phase] = []
 
-            data[spec_key][phase].append({
-                "slot": slot_name,
-                "itemID": item_id,
-                "rank": rank,
-            })
+                data[spec_key][phase].append({
+                    "slot": slot_name,
+                    "itemID": item_id,
+                    "rank": rank,
+                })
 
     return data
 
@@ -200,7 +206,13 @@ def main():
     print(f"Reading {csv_path}...")
     data = read_csv(csv_path)
 
-    print(f"Found {len(data)} specs:")
+    # Add fallback data for missing specs
+    for missing_spec, fallback_spec in SPEC_FALLBACK.items():
+        if missing_spec not in data and fallback_spec in data:
+            data[missing_spec] = data[fallback_spec]
+            print(f"  {missing_spec} (fallback from {fallback_spec})")
+
+    print(f"\nFound {len(data)} specs:")
     for spec in sorted(data.keys()):
         phases = sorted(data[spec].keys())
         total_items = sum(len(data[spec][p]) for p in phases)
