@@ -7,6 +7,7 @@ VK_TitanGoldDB = VK_TitanGoldDB or {}
 
 local sessionStartGold = 0
 local sessionStartTime = 0
+local lastKnownGold = 0
 
 local function GetIdentity()
     local name = UnitName("player")
@@ -19,9 +20,13 @@ local function SaveGold()
     local realm, faction, name = GetIdentity()
     local copper = GetMoney()
 
+    if copper > 0 then
+        lastKnownGold = copper
+    end
+
     VK_TitanGoldDB[realm] = VK_TitanGoldDB[realm] or {}
     VK_TitanGoldDB[realm][faction] = VK_TitanGoldDB[realm][faction] or {}
-    VK_TitanGoldDB[realm][faction][name] = copper
+    VK_TitanGoldDB[realm][faction][name] = lastKnownGold
 end
 
 local function GetTotalGold()
@@ -54,12 +59,26 @@ end
 
 frame:SetScript("OnEvent", function(self, event)
     if event == "PLAYER_LOGOUT" then
-        SaveGold()
-    elseif event == "PLAYER_MONEY" then
-        SaveGold()
+        local realm, faction, name = GetIdentity()
+        if lastKnownGold > 0 then
+            VK_TitanGoldDB[realm] = VK_TitanGoldDB[realm] or {}
+            VK_TitanGoldDB[realm][faction] = VK_TitanGoldDB[realm][faction] or {}
+            VK_TitanGoldDB[realm][faction][name] = lastKnownGold
+        end
+    elseif event == "PLAYER_ENTERING_WORLD" then
+        local current = GetMoney()
+        if current > 0 then
+            lastKnownGold = current
+            SaveGold()
+        end
         plugin:Update()
         VK_Titan:RefreshBar()
     else
+        local current = GetMoney()
+        if current > 0 then
+            lastKnownGold = current
+        end
+        SaveGold()
         plugin:Update()
         VK_Titan:RefreshBar()
     end
@@ -73,20 +92,28 @@ function plugin:Update()
         sessionStartGold = current
     end
 
+    if current > 0 then
+        lastKnownGold = current
+    end
+
     local total = GetTotalGold()
 
     self.text = FormatGold(total)
 end
 
 function plugin:OnTooltipShow()
-    local realm, faction = GetIdentity()
+    local realm, faction, myName = GetIdentity()
 
     GameTooltip:AddLine("Gold Summary", 1, 1, 1)
     GameTooltip:AddLine(" ")
 
     if VK_TitanGoldDB[realm] and VK_TitanGoldDB[realm][faction] then
         for name, copper in pairs(VK_TitanGoldDB[realm][faction]) do
-            GameTooltip:AddDoubleLine(name, FormatGold(copper), 1, 1, 1, 1, 1, 0)
+            if name == myName then
+                GameTooltip:AddDoubleLine(name .. " (you)", FormatGold(copper), 0, 1, 0, 1, 1, 0)
+            else
+                GameTooltip:AddDoubleLine(name, FormatGold(copper), 1, 1, 1, 1, 1, 0)
+            end
         end
     end
 
