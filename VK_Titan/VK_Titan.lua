@@ -92,20 +92,29 @@ end
 -- ============================
 
 function VK_Titan:CreateTextObject(name, plugin)
-    local text = bar:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    local holder = CreateFrame("Frame", nil, bar)
+    holder:SetHeight(24)
+    holder:EnableMouse(false)
+    holder._vkPlugin = plugin
+
+    local text = holder:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     text:SetTextColor(1, 1, 1, 1)
     text:SetJustifyH("LEFT")
-    text._vkPlugin = plugin
-    table.insert(VK_Titan.textObjects, text)
-    return text
+    text:SetPoint("LEFT", holder, "LEFT", 0, 0)
+
+    holder._text = text
+    table.insert(VK_Titan.textObjects, holder)
+    return holder
 end
 
 function VK_Titan:Layout()
     local x = 10
-    for _, text in ipairs(VK_Titan.textObjects) do
-        text:ClearAllPoints()
-        text:SetPoint("LEFT", bar, "LEFT", x, 0)
-        x = x + text:GetStringWidth() + 20
+    for _, holder in ipairs(VK_Titan.textObjects) do
+        holder:ClearAllPoints()
+        holder:SetPoint("LEFT", bar, "LEFT", x, 0)
+        local w = holder._text:GetStringWidth()
+        holder:SetWidth(w + 10)
+        x = x + w + 20
     end
 end
 
@@ -113,6 +122,7 @@ function VK_Titan:RefreshBar()
     for name, plugin in pairs(VK_Titan.plugins) do
         if not plugin.textObject then
             plugin.textObject = VK_Titan:CreateTextObject(name, plugin)
+            plugin.textObject:EnableMouse(true)
             plugin.textObject:SetScript("OnEnter", function(self)
                 if self._vkPlugin and self._vkPlugin.OnTooltipShow then
                     GameTooltip:SetOwner(self, "ANCHOR_BOTTOMLEFT")
@@ -131,7 +141,7 @@ function VK_Titan:RefreshBar()
                 end)
             end
         end
-        plugin.textObject:SetText(plugin.text or name)
+        plugin.textObject._text:SetText(plugin.text or name)
     end
     VK_Titan:Layout()
 end
