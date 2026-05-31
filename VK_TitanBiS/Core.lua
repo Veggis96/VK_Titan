@@ -221,6 +221,8 @@ local function CreateMainFrame()
         btnText:SetPoint("LEFT", btn, "LEFT", 5, 0)
         btnText:SetText(slotName)
 
+        btn._text = btnText
+
         btn:SetScript("OnClick", function()
             activeSlot = slotName
             ns:RefreshBiSList()
@@ -312,10 +314,12 @@ function ns:RefreshBiSList()
 
     -- Update nav button highlights
     for slotName, btn in pairs(mainFrame.navButtons) do
-        if slotName == activeSlot then
-            btn:GetFontString():SetTextColor(0, 1, 0)
-        else
-            btn:GetFontString():SetTextColor(1, 0.82, 0)
+        if btn._text then
+            if slotName == activeSlot then
+                btn._text:SetTextColor(0, 1, 0)
+            else
+                btn._text:SetTextColor(1, 0.82, 0)
+            end
         end
     end
 
