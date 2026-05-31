@@ -422,17 +422,11 @@ end
 
 VK_TitanClassic:RegisterPlugin("VK_TitanBiS", plugin)
 
--- Click handler: open BiS window
-local function OnClick()
-    ns:ToggleBiSWindow()
-end
-
--- Register click after the plugin is set up
-C_Timer.After(1, function()
-    if plugin.textObject then
-        plugin.textObject:SetScript("OnClick", OnClick)
+function plugin:OnClick(self, button)
+    if button == "LeftButton" then
+        ns:ToggleBiSWindow()
     end
-end)
+end
 
 -- =====================
 -- Tooltip Integration

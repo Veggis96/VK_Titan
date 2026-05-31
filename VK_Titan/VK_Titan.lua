@@ -123,6 +123,13 @@ function VK_Titan:RefreshBar()
             plugin.textObject:SetScript("OnLeave", function()
                 GameTooltip:Hide()
             end)
+            if plugin.OnClick then
+                plugin.textObject:SetScript("OnClick", function(self, button)
+                    if self._vkPlugin and self._vkPlugin.OnClick then
+                        self._vkPlugin:OnClick(self, button)
+                    end
+                end)
+            end
         end
         plugin.textObject:SetText(plugin.text or name)
     end
