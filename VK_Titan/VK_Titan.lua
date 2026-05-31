@@ -123,6 +123,7 @@ function VK_Titan:RefreshBar()
         if not plugin.textObject then
             plugin.textObject = VK_Titan:CreateTextObject(name, plugin)
             plugin.textObject:EnableMouse(true)
+            plugin.textObject:RegisterForClicks("AnyUp")
             plugin.textObject:SetScript("OnEnter", function(self)
                 if self._vkPlugin and self._vkPlugin.OnTooltipShow then
                     GameTooltip:SetOwner(self, "ANCHOR_BOTTOMLEFT")
