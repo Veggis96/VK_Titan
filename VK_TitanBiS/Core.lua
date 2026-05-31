@@ -188,8 +188,8 @@ local function CreateMainFrame()
     -- Right panel: slot navigation
     local navPanel = CreateFrame("Frame", nil, mainFrame, "BackdropTemplate")
     navPanel:SetWidth(120)
-    navPanel:SetPoint("TOPLEFT", metaBox, "BOTTOMLEFT", 0, -4)
-    navPanel:SetPoint("BOTTOMRIGHT", mainFrame, "BOTTOMRIGHT", -8, 8)
+    navPanel:SetPoint("TOPRIGHT", mainFrame, "TOPRIGHT", -8, -55)
+    navPanel:SetPoint("BOTTOM", mainFrame, "BOTTOM", 0, 8)
     navPanel:SetBackdrop({
         bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
         edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
