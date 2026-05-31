@@ -386,7 +386,15 @@ frame:SetScript("OnEvent", function(self, event)
         local _, classFile = UnitClass("player")
         if classFile then
             selectedClass = classFile
+            for _, classData in ipairs(ns.ClassSpecs) do
+                if classData.key == classFile then
+                    selectedSpec = classData.specs[1]
+                    break
+                end
+            end
         end
+        plugin:Update()
+        VK_Titan:RefreshBar()
     end
 end)
 
