@@ -1,0 +1,6 @@
+<Ui xmlns="http://www.blizzard.com/ui-schemas/ui">
+    <Script file="Data\GemData.lua"/>
+    <Script file="Data\EnchantData.lua"/>
+    <Script file="Data\BiSData.lua"/>
+    <Script file="Core.lua"/>
+</Ui>
