@@ -30,6 +30,11 @@ local SLOT_ICONS = {
 -- Helpers
 -- =====================
 local function GetSpecKey()
+    for _, classData in ipairs(ns.ClassSpecs) do
+        if classData.key == selectedClass then
+            return classData.name .. selectedSpec
+        end
+    end
     return selectedClass .. selectedSpec
 end
 
