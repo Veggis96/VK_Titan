@@ -106,34 +106,9 @@ local function CreateMainFrame()
     content:SetPoint("TOPLEFT", titleBar, "BOTTOMLEFT", 10, -10)
     content:SetPoint("BOTTOMRIGHT", mainFrame, "BOTTOMRIGHT", -10, 10)
 
-    -- Class dropdown
-    local classLabel = content:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    classLabel:SetPoint("TOPLEFT", content, "TOPLEFT", 0, 0)
-    classLabel:SetText("Class:")
-
-    local classDD = CreateFrame("Frame", "VK_TitanBiSClassDD", content, "UIDropDownMenuTemplate")
-    classDD:SetPoint("TOPLEFT", classLabel, "BOTTOMLEFT", -10, -5)
-
-    UIDropDownMenu_SetWidth(classDD, 130)
-    UIDropDownMenu_SetInitializeFunction(classDD, function(self, level)
-        for _, classData in ipairs(ns.ClassSpecs) do
-            local info = {}
-            info.text = classData.name
-            info.func = function()
-                selectedClass = classData.key
-                selectedSpec = classData.specs[1]
-                UIDropDownMenu_SetText(classDD, classData.name)
-                CloseDropDownMenus()
-                ns:RefreshBiSList()
-            end
-            UIDropDownMenu_AddButton(info, level)
-        end
-    end)
-    UIDropDownMenu_SetText(classDD, "Warrior")
-
-    -- Spec dropdown
+    -- Spec dropdown (defined first so class dropdown can reference it)
     local specLabel = content:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    specLabel:SetPoint("LEFT", classDD, "RIGHT", 10, 10)
+    specLabel:SetPoint("TOPLEFT", content, "TOPLEFT", 200, 0)
     specLabel:SetText("Spec:")
 
     local specDD = CreateFrame("Frame", "VK_TitanBiSSpecDD", content, "UIDropDownMenuTemplate")
@@ -161,6 +136,32 @@ local function CreateMainFrame()
         end)
         UIDropDownMenu_SetText(specDD, selectedSpec)
     end
+
+    -- Class dropdown
+    local classLabel = content:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    classLabel:SetPoint("TOPLEFT", content, "TOPLEFT", 0, 0)
+    classLabel:SetText("Class:")
+
+    local classDD = CreateFrame("Frame", "VK_TitanBiSClassDD", content, "UIDropDownMenuTemplate")
+    classDD:SetPoint("TOPLEFT", classLabel, "BOTTOMLEFT", -10, -5)
+
+    UIDropDownMenu_SetWidth(classDD, 130)
+    UIDropDownMenu_SetInitializeFunction(classDD, function(self, level)
+        for _, classData in ipairs(ns.ClassSpecs) do
+            local info = {}
+            info.text = classData.name
+            info.func = function()
+                selectedClass = classData.key
+                selectedSpec = classData.specs[1]
+                UIDropDownMenu_SetText(classDD, classData.name)
+                UpdateSpecDropdown()
+                CloseDropDownMenus()
+                ns:RefreshBiSList()
+            end
+            UIDropDownMenu_AddButton(info, level)
+        end
+    end)
+    UIDropDownMenu_SetText(classDD, "Warrior")
 
     -- Phase dropdown
     local phaseLabel = content:CreateFontString(nil, "OVERLAY", "GameFontNormal")
@@ -290,22 +291,27 @@ function ns:RefreshBiSList()
             slotIcon:SetPoint("TOPLEFT", row, "TOPLEFT", 5, -5)
             slotIcon:SetTexture(SLOT_ICONS[item.slot] or "Interface\\Icons\\INV_Misc_QuestionMark")
 
-            -- Item name (use GetItemInfo if available)
-            local itemName = "Item " .. item.itemID
-            local itemLink = nil
-            local _, _, quality, _, _, _, _, _, _, itemTexture = GetItemInfo(item.itemID)
-            if quality then
-                local r, g, b = GetItemQualityColor(quality)
-                -- Use item info
+            -- Item name
+            local itemName, itemLink, itemQuality, _, _, _, _, _, itemEquipLoc, itemTexture = GetItemInfo(item.itemID)
+            if not itemName then
+                itemName = "Item " .. item.itemID
             end
 
             local nameText = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
             nameText:SetPoint("TOPLEFT", slotIcon, "TOPRIGHT", 5, -2)
             nameText:SetWidth(300)
             nameText:SetJustifyH("LEFT")
-            nameText:SetText(string.format("|cff%s#%d|r  %s (%d)",
-                item.rank == 1 and "00ff00" or item.rank == 2 and "ffffffcc" or "999999",
-                item.rank, itemName, item.itemID))
+
+            local rankColor = item.rank == 1 and "00ff00" or item.rank == 2 and "ffffffcc" or "999999"
+            if itemQuality then
+                local r, g, b = GetItemQualityColor(itemQuality)
+                local qualityHex = string.format("%02x%02x%02x", r * 255, g * 255, b * 255)
+                nameText:SetText(string.format("|cff%s#%d|r  |cff%s%s|r",
+                    rankColor, item.rank, qualityHex, itemName))
+            else
+                nameText:SetText(string.format("|cff%s#%d|r  %s",
+                    rankColor, item.rank, itemName))
+            end
 
             -- Slot label
             local slotText = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
@@ -381,12 +387,14 @@ local plugin = {}
 plugin.text = "BiS"
 
 local frame = CreateFrame("Frame")
+local itemRefreshPending = false
 
 function plugin:OnLoad()
     frame:RegisterEvent("PLAYER_ENTERING_WORLD")
+    frame:RegisterEvent("GET_ITEM_INFO_RECEIVED")
 end
 
-frame:SetScript("OnEvent", function(self, event)
+frame:SetScript("OnEvent", function(self, event, arg1)
     if event == "PLAYER_ENTERING_WORLD" then
         local _, classFile = UnitClass("player")
         if classFile then
@@ -400,6 +408,14 @@ frame:SetScript("OnEvent", function(self, event)
         end
         plugin:Update()
         VK_Titan:RefreshBar()
+    elseif event == "GET_ITEM_INFO_RECEIVED" and mainFrame and mainFrame:IsShown() then
+        if not itemRefreshPending then
+            itemRefreshPending = true
+            C_Timer.After(0.5, function()
+                itemRefreshPending = false
+                ns:RefreshBiSList()
+            end)
+        end
     end
 end)
 
