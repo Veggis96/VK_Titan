@@ -237,13 +237,13 @@ local function CreateMainFrame()
     scrollFrame:SetPoint("BOTTOMRIGHT", navPanel, "BOTTOMLEFT", -6, 0)
 
     local scrollChild = CreateFrame("Frame", nil, scrollFrame)
-    scrollChild:SetWidth(scrollFrame:GetWidth())
     scrollChild:SetHeight(1)
     scrollFrame:SetScrollChild(scrollChild)
 
     -- Store references
     mainFrame.metaText = metaText
     mainFrame.scrollChild = scrollChild
+    mainFrame.scrollFrame = scrollFrame
     mainFrame.navButtons = navButtons
     mainFrame.UpdateSpecDropdown = UpdateSpecDropdown
 
@@ -325,9 +325,13 @@ function ns:RefreshBiSList()
 
     -- Clear scroll child
     local scrollChild = mainFrame.scrollChild
-    for _, child in ipairs({ scrollChild:GetChildren() }) do
-        child:Hide()
+    local children = { scrollChild:GetChildren() }
+    for i = #children, 1, -1 do
+        children[i]:Hide()
     end
+
+    -- Set width now that frame is sized
+    scrollChild:SetWidth(mainFrame.scrollFrame:GetWidth() - 20)
 
     if not bisData then
         local noData = scrollChild:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
