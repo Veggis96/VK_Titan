@@ -383,13 +383,9 @@ end
 
 frame:SetScript("OnEvent", function(self, event)
     if event == "PLAYER_ENTERING_WORLD" then
-        local className = UnitClass("player")
-        -- Try to match current class
-        for _, classData in ipairs(ns.ClassSpecs) do
-            if classData.key == strupper(className) then
-                selectedClass = classData.key
-                break
-            end
+        local _, classFile = UnitClass("player")
+        if classFile then
+            selectedClass = classFile
         end
     end
 end)
@@ -411,11 +407,18 @@ function plugin:Update()
 end
 
 function plugin:OnTooltipShow()
+    local displayName = selectedClass
+    for _, classData in ipairs(ns.ClassSpecs) do
+        if classData.key == selectedClass then
+            displayName = classData.name
+            break
+        end
+    end
     GameTooltip:AddLine("VK Titan BiS", 1, 1, 1)
     GameTooltip:AddLine(" ")
-    GameTooltip:AddDoubleLine("Class", selectedClass, 1, 1, 1, 1, 0.82, 0)
+    GameTooltip:AddDoubleLine("Class", displayName, 1, 1, 1, 1, 0.82, 0)
     GameTooltip:AddDoubleLine("Spec", selectedSpec, 1, 1, 1, 1, 0.82, 0)
-    GameTooltip:AddDoubleLine("Phase", "Phase " .. selectedPhase, 1, 1, 1, 1, 0.82, 0)
+    GameTooltip:AddDoubleLine("Phase", selectedPhase, 1, 1, 1, 1, 0.82, 0)
     GameTooltip:AddLine(" ")
     GameTooltip:AddLine("|cff00ff00Click to open BiS list|r")
 end
