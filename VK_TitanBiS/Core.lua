@@ -26,10 +26,25 @@ local SLOT_ICONS = {
     OffHand = 134952, TwoHand = 135321, Ranged = 135611,
 }
 
-local SLOT_DISPLAY = {
-    "Head", "Shoulders", "Back", "Chest", "Wrist", "Hands",
-    "Waist", "Legs", "Feet", "Neck", "Rings", "Trinkets",
-    "Main Hand", "Off Hand", "Two Hand", "Ranged",
+local SLOT_LABELS = {
+    Head = "Head",
+    Shoulders = "Shoulders",
+    Back = "Back",
+    Chest = "Chest",
+    Wrist = "Wrist",
+    Hands = "Hands",
+    Waist = "Waist",
+    Legs = "Legs",
+    Feet = "Feet",
+    Neck = "Neck",
+    Ring1 = "Ring 1",
+    Ring2 = "Ring 2",
+    Trinket1 = "Trinket 1",
+    Trinket2 = "Trinket 2",
+    MainHand = "Main Hand",
+    OffHand = "Off Hand",
+    TwoHand = "Two Hand",
+    Ranged = "Ranged",
 }
 
 -- =====================
@@ -44,10 +59,24 @@ local function GetSpecKey()
     return selectedClass .. selectedSpec
 end
 
+local function GetSlotLabel(slotName)
+    return SLOT_LABELS[slotName] or slotName
+end
+
+local function GetGemKey(socketColor)
+    if socketColor == "M" then return "meta" end
+    if socketColor == "R" then return "Red" end
+    if socketColor == "Y" then return "Yellow" end
+    if socketColor == "B" then return "Blue" end
+    return socketColor
+end
+
 local function GetGemForSocket(socketColor, specKey, budget)
     local gd = ns.GemData[specKey]
-    if not gd or not gd.gems[socketColor] then return nil end
-    return budget and gd.gems[socketColor].budget or gd.gems[socketColor].bis
+    local gemKey = GetGemKey(socketColor)
+    local gem = gemKey == "meta" and gd and gd.meta or gd and gd.gems and gd.gems[gemKey]
+    if not gem then return nil end
+    return budget and gem.budget or gem.bis or gem
 end
 
 -- =====================
@@ -187,7 +216,7 @@ local function CreateMainFrame()
 
     -- Right panel: slot navigation
     local navPanel = CreateFrame("Frame", nil, mainFrame, "BackdropTemplate")
-    navPanel:SetWidth(120)
+    navPanel:SetWidth(130)
     navPanel:SetPoint("TOPRIGHT", mainFrame, "TOPRIGHT", -8, -55)
     navPanel:SetPoint("BOTTOM", mainFrame, "BOTTOM", 0, 8)
     navPanel:SetBackdrop({
@@ -203,6 +232,7 @@ local function CreateMainFrame()
 
     local navButtons = {}
     local navSlotNames = {
+        "All",
         "Head", "Shoulders", "Back", "Chest", "Wrist", "Hands",
         "Waist", "Legs", "Feet", "Neck", "Ring1", "Ring2",
         "Trinket1", "Trinket2", "MainHand", "OffHand", "TwoHand", "Ranged",
@@ -210,7 +240,7 @@ local function CreateMainFrame()
 
     for i, slotName in ipairs(navSlotNames) do
         local btn = CreateFrame("Button", nil, navPanel)
-        btn:SetSize(110, 18)
+        btn:SetSize(120, 18)
         btn:SetPoint("TOP", navTitle, "BOTTOM", 0, -((i - 1) * 18) - 4)
 
         local btnBg = btn:CreateTexture(nil, "HIGHLIGHT")
@@ -219,12 +249,12 @@ local function CreateMainFrame()
 
         local btnText = btn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
         btnText:SetPoint("LEFT", btn, "LEFT", 5, 0)
-        btnText:SetText(slotName)
+        btnText:SetText(slotName == "All" and "All Slots" or GetSlotLabel(slotName))
 
         btn._text = btnText
 
         btn:SetScript("OnClick", function()
-            activeSlot = slotName
+            activeSlot = slotName ~= "All" and slotName or nil
             ns:RefreshBiSList()
         end)
 
@@ -274,10 +304,7 @@ local function BuildItemTooltip(tooltip, itemID, specKey)
         tooltip:AddLine(" ")
         tooltip:AddLine("|cFF00CCFFSuggested Gems:|r")
         for _, color in ipairs(sockets) do
-            local colorKey = color:lower()
-            -- Map socket color to gem data key
-            local gemKey = colorKey == "m" and "meta" or colorKey == "r" and "red" or colorKey == "y" and "yellow" or colorKey == "b" and "blue" or nil
-            local gem = gemData.gems[gemKey] or (gemKey == "meta" and gemData.meta)
+            local gem = GetGemForSocket(color, specKey, showBudget)
             if gem then
                 local _, link = GetItemInfo(gem.id)
                 if link then
@@ -305,9 +332,10 @@ function ns:RefreshBiSList()
 
     -- Update meta gem info
     if gemData and gemData.meta then
+        local metaIcon = select(10, GetItemInfo(gemData.meta.id)) or "Interface\\Icons\\INV_Misc_Gem_Diamond_06"
         mainFrame.metaText:SetText(
-            string.format("|T%d:14:14:0:0|t Meta: %s",
-                gemData.meta.id, gemData.meta.name)
+            string.format("|T%s:14:14:0:0|t Meta: %s",
+                metaIcon, gemData.meta.name)
         )
     else
         mainFrame.metaText:SetText("No gem data for this spec")
@@ -316,7 +344,7 @@ function ns:RefreshBiSList()
     -- Update nav button highlights
     for slotName, btn in pairs(mainFrame.navButtons) do
         if btn._text then
-            if slotName == activeSlot then
+            if slotName == activeSlot or (slotName == "All" and activeSlot == nil) then
                 btn._text:SetTextColor(0, 1, 0)
             else
                 btn._text:SetTextColor(1, 0.82, 0)
@@ -329,7 +357,13 @@ function ns:RefreshBiSList()
     local children = { scrollChild:GetChildren() }
     for i = #children, 1, -1 do
         children[i]:Hide()
+        children[i]:SetParent(nil)
     end
+    local regions = { scrollChild:GetRegions() }
+    for i = #regions, 1, -1 do
+        regions[i]:Hide()
+    end
+    mainFrame.scrollFrame:SetVerticalScroll(0)
 
     -- Set width now that frame is sized
     scrollChild:SetWidth(mainFrame.scrollFrame:GetWidth() - 20)
@@ -338,6 +372,7 @@ function ns:RefreshBiSList()
         local noData = scrollChild:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
         noData:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", 10, -10)
         noData:SetText("No BiS data for this spec.")
+        scrollChild:SetHeight(40)
         return
     end
 
@@ -346,6 +381,7 @@ function ns:RefreshBiSList()
         local noData = scrollChild:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
         noData:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", 10, -10)
         noData:SetText("No data for Phase " .. selectedPhase .. ".")
+        scrollChild:SetHeight(40)
         return
     end
 
@@ -383,16 +419,11 @@ function ns:RefreshBiSList()
 
             local headerLabel = header:CreateFontString(nil, "OVERLAY", "GameFontNormal")
             headerLabel:SetPoint("CENTER", header, "CENTER", 0, 0)
-            headerLabel:SetText(slotName)
+            headerLabel:SetText(GetSlotLabel(slotName))
 
             yOffset = yOffset - 28
 
-            -- Show top items (up to 3)
-            local shown = 0
             for _, item in ipairs(items) do
-                if shown >= 3 then break end
-                shown = shown + 1
-
                 local info = { GetItemInfo(item.itemID) }
                 local itemName = info[1] or ("Item " .. item.itemID)
                 local itemLink = info[2]
@@ -419,7 +450,7 @@ function ns:RefreshBiSList()
                 -- Item name (quality-colored)
                 local nameText = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
                 nameText:SetPoint("TOPLEFT", icon, "TOPRIGHT", 6, -2)
-                nameText:SetWidth(400)
+                nameText:SetPoint("RIGHT", row, "RIGHT", -45, 0)
                 nameText:SetJustifyH("LEFT")
 
                 if itemQuality then
@@ -435,17 +466,22 @@ function ns:RefreshBiSList()
                 subText:SetPoint("TOPLEFT", nameText, "BOTTOMLEFT", 0, -2)
                 subText:SetTextColor(0.7, 0.7, 0.7)
 
+                local rankText = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+                rankText:SetPoint("RIGHT", row, "RIGHT", -8, 0)
+                rankText:SetTextColor(1, 0.82, 0)
+                rankText:SetText(item.rank and ("#" .. item.rank) or "")
+
                 local _, _, _, _, _, _, _, _, itemEquipLoc, itemTexture2, itemClassID, itemSubClassID = GetItemInfo(item.itemID)
                 if itemClassID and itemSubClassID then
                     local armorTypes = { [2] = "Cloth", [3] = "Leather", [4] = "Mail", [5] = "Plate" }
                     local armorType = armorTypes[itemSubClassID] or ""
-                    local slotType = slotName
+                    local slotType = GetSlotLabel(slotName)
                     if itemEquipLoc then
                         slotType = slotType .. (armorType ~= "" and (", " .. armorType) or "")
                     end
                     subText:SetText(slotType)
                 else
-                    subText:SetText(slotName)
+                    subText:SetText(GetSlotLabel(slotName))
                 end
 
                 -- Hover: show full tooltip with gem/enchant suggestions
@@ -583,7 +619,7 @@ GameTooltip:HookScript("OnTooltipSetItem", function(self)
     for _, item in ipairs(phaseData) do
         if item.itemID == itemID then
             self:AddLine(" ")
-            self:AddLine("|cFF00FF00BiS #" .. item.rank .. " (" .. item.slot .. ")|r")
+            self:AddLine("|cFF00FF00BiS #" .. item.rank .. " (" .. GetSlotLabel(item.slot) .. ")|r")
             break
         end
     end
