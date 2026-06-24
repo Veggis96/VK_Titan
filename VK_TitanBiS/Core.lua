@@ -12,17 +12,22 @@ local selectedPhase = 1
 local showBudget = false
 local activeSlot = nil
 
+local PHASES = {
+    { value = 0, label = "Phase 0" },
+    { value = 1, label = "Phase 1" },
+}
+
 local SLOT_ORDER = {
     "Head", "Shoulders", "Back", "Chest", "Wrist", "Hands",
-    "Waist", "Legs", "Feet", "Neck", "Ring1", "Ring2",
-    "Trinket1", "Trinket2", "MainHand", "OffHand", "TwoHand", "Ranged",
+    "Waist", "Legs", "Feet", "Neck", "Ring1",
+    "Trinket1", "MainHand", "OffHand", "TwoHand", "Ranged",
 }
 
 local SLOT_ICONS = {
     Head = 133071, Neck = 133304, Shoulders = 135026, Back = 133752,
     Chest = 132624, Wrist = 132616, Hands = 132958, Waist = 132516,
-    Legs = 132726, Feet = 132535, Ring1 = 133399, Ring2 = 133399,
-    Trinket1 = 133278, Trinket2 = 133278, MainHand = 135321,
+    Legs = 132726, Feet = 132535, Ring1 = 133399,
+    Trinket1 = 133278, MainHand = 135321,
     OffHand = 134952, TwoHand = 135321, Ranged = 135611,
 }
 
@@ -37,10 +42,8 @@ local SLOT_LABELS = {
     Legs = "Legs",
     Feet = "Feet",
     Neck = "Neck",
-    Ring1 = "Ring 1",
-    Ring2 = "Ring 2",
-    Trinket1 = "Trinket 1",
-    Trinket2 = "Trinket 2",
+    Ring1 = "Rings",
+    Trinket1 = "Trinkets",
     MainHand = "Main Hand",
     OffHand = "Off Hand",
     TwoHand = "Two Hand",
@@ -61,6 +64,15 @@ end
 
 local function GetSlotLabel(slotName)
     return SLOT_LABELS[slotName] or slotName
+end
+
+local function GetPhaseLabel(phase)
+    for _, phaseData in ipairs(PHASES) do
+        if phaseData.value == phase then
+            return phaseData.label
+        end
+    end
+    return "Phase " .. phase
 end
 
 local function GetGemKey(socketColor)
@@ -178,12 +190,12 @@ local function CreateMainFrame()
     UIDropDownMenu_SetWidth(phaseDD, 90)
 
     UIDropDownMenu_SetInitializeFunction(phaseDD, function(self, level)
-        for i = 1, 5 do
+        for _, phaseData in ipairs(PHASES) do
             local info = {}
-            info.text = "Phase " .. i
+            info.text = phaseData.label
             info.func = function()
-                selectedPhase = i
-                UIDropDownMenu_SetText(phaseDD, "Phase " .. i)
+                selectedPhase = phaseData.value
+                UIDropDownMenu_SetText(phaseDD, phaseData.label)
                 CloseDropDownMenus()
                 ns:RefreshBiSList()
             end
@@ -234,8 +246,8 @@ local function CreateMainFrame()
     local navSlotNames = {
         "All",
         "Head", "Shoulders", "Back", "Chest", "Wrist", "Hands",
-        "Waist", "Legs", "Feet", "Neck", "Ring1", "Ring2",
-        "Trinket1", "Trinket2", "MainHand", "OffHand", "TwoHand", "Ranged",
+        "Waist", "Legs", "Feet", "Neck", "Ring1",
+        "Trinket1", "MainHand", "OffHand", "TwoHand", "Ranged",
     }
 
     for i, slotName in ipairs(navSlotNames) do
@@ -380,7 +392,7 @@ function ns:RefreshBiSList()
     if not phaseData then
         local noData = scrollChild:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
         noData:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", 10, -10)
-        noData:SetText("No data for Phase " .. selectedPhase .. ".")
+        noData:SetText("No data for " .. GetPhaseLabel(selectedPhase) .. ".")
         scrollChild:SetHeight(40)
         return
     end
@@ -589,7 +601,7 @@ function plugin:OnTooltipShow()
     GameTooltip:AddLine(" ")
     GameTooltip:AddDoubleLine("Class", displayName, 1, 1, 1, 1, 0.82, 0)
     GameTooltip:AddDoubleLine("Spec", selectedSpec, 1, 1, 1, 1, 0.82, 0)
-    GameTooltip:AddDoubleLine("Phase", selectedPhase, 1, 1, 1, 1, 0.82, 0)
+    GameTooltip:AddDoubleLine("Phase", GetPhaseLabel(selectedPhase), 1, 1, 1, 1, 0.82, 0)
     GameTooltip:AddLine(" ")
     GameTooltip:AddLine("|cff00ff00Click to open BiS list|r")
 end
