@@ -12,6 +12,7 @@ $addons = @(
     "VK_TitanClassic",
     "VK_TitanGold",
     "VK_TitanRepair",
+    "VK_TitanSession",
     "VK_TitanXP"
 )
 
