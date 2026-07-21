@@ -1,8 +1,12 @@
 # VK Titan Deploy Script
-# Copies addon files to WoW TBC Anniversary addon folder for testing.
+# Copies addon files to a WoW TBC Anniversary addon folder for local testing.
+
+param(
+    [string]$AddonPath = "C:\Program Files (x86)\World of Warcraft\_anniversary_\Interface\AddOns"
+)
 
 $src = $PSScriptRoot
-$dst = "C:\Program Files (x86)\World of Warcraft\_anniversary_\Interface\AddOns"
+$dst = $AddonPath
 
 $addons = @(
     "VK_Titan",
