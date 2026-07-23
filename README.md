@@ -19,14 +19,37 @@ World of Warcraft players often want lightweight in-game status panels and quick
 - Python/Lua data generation tools for BiS-related datasets.
 - PowerShell deploy helper for copying addon folders into a local WoW installation.
 
-## Demo And Screenshots
+## Hero Screenshot
 
-Screenshots are not committed yet. Recommended screenshots to add under `docs/images/`:
+No screenshot is committed yet. Add this first:
 
-- `titan-bar.png`: in-game Titan-style bar with enabled modules.
-- `bis-window.png`: Best-in-Slot window with class, spec, phase, and slot navigation visible.
-- `session-xp.png`: session or XP tracking module in use.
-- `repair-gold-bag.png`: repair, gold, and bag modules visible on the panel.
+### Titan Bar
+
+`docs/images/titan-bar.png`
+
+In-game Titan-style bar with the most useful modules enabled.
+
+## Additional Screenshots
+
+Add only the most useful supporting screenshots:
+
+### BiS Window
+
+`docs/images/bis-window.png`
+
+Best-in-Slot window with class, spec, phase, and slot navigation visible.
+
+### Session And XP
+
+`docs/images/session-xp.png`
+
+Session or XP tracking module while playing.
+
+### Utility Modules
+
+`docs/images/utility-modules.png`
+
+Repair, gold, bag, or ammo modules visible on the panel.
 
 Do not include screenshots that show private chat, account names, character names you do not want public, guild chat, BattleTag information, or private server details.
 
